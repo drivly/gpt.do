@@ -28,6 +28,7 @@ export default {
       presence_penalty: 0,
     }
     const completion = await fetch('https://api.openai.com/v1/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}).then(res => res.json())
-    return new Response(JSON.stringify({ api, options, completion, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
+    const codeLines = completions.choices.map(choice => choice.text.split('/n'))
+    return new Response(JSON.stringify({ api, options, completion, codeLines, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
   },
 }
