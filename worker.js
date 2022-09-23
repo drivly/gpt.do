@@ -1,7 +1,7 @@
 export const api = {
   icon: '🤖',
   name: 'gpt.do',
-  description: 'CGPT-3 Templates and Completions',
+  description: 'GPT-3 Templates and Completions',
   url: 'https://gpt.do/api',
   type: 'https://apis.do/ai',
   endpoints: {
