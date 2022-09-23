@@ -18,8 +18,17 @@ export const api = {
 export default {
   fetch: async (req, env) => {
     const { user, origin, requestId, method, body, time, pathSegments, pathOptions, url, query } = await env.CTX.fetch(req).then(res => res.json())
-    
 
-    return new Response(JSON.stringify({ api, requestId, url, pathSegments, pathOptions, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
+    const options = {
+      model: 'code-davinci-002',
+      prompt: '// ES6 arrow function called ',
+      temperature: 0,
+      max_tokens: 300,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    }
+
+    return new Response(JSON.stringify({ api, requestId, url, pathSegments, pathOptions, options, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
   },
 }
