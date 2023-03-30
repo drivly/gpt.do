@@ -29,8 +29,9 @@ export default {
         {'role': 'user', 'content': pathSegments[0].replace('_',' ').replace('+',' ') },
     ]
     }
-    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}) //.then(res => res.json())
-    return completion
+    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}).then(res => res.json())
+    const response = completion.choices[0].message.content.split('\n')
+    return json({response, ...completion})
     // return new Response(JSON.stringify({ api, options, completion, codeLines, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
   },
 }
