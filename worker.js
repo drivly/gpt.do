@@ -23,9 +23,10 @@ export default {
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     const options = {
-      model: 'gpt-4',
+      // model: 'gpt-4',
+      model: 'gpt-3.5-turbo',
       messages: [
-        {'role': 'system', 'content': 'You are a helpful assistant.'},
+        {'role': 'system', 'content': 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'},
         {'role': 'user', 'content': pathSegments[0].replace('_',' ').replace('+',' ') },
     ]
     }
