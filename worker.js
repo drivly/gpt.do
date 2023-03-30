@@ -19,7 +19,7 @@ export default {
   fetch: async (req, env) => {
     const { user, origin, requestId, method, body, time, pathname, pathSegments, pathOptions, url, query } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/webhooks/github') {
-      return json({ success: true })
+      return json({ success: true, user })
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     const options = {
@@ -31,7 +31,7 @@ export default {
     }
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}).then(res => res.json())
     const response = completion.choices[0].message.content.split('\n')
-    return json({response, ...completion})
+    return json({response, ...completion, user})
     // return new Response(JSON.stringify({ api, options, completion, codeLines, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
   },
 }
