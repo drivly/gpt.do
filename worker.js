@@ -26,7 +26,7 @@ export default {
       model: 'gpt-4',
       messages: [
         {'role': 'system', 'content': 'You are a helpful assistant.'},
-        {'role': 'user', 'content': pathSegments[0]},
+        {'role': 'user', 'content': pathSegments[0].replace('_',' ').replace('+',' ') },
     ]
     }
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}) //.then(res => res.json())
