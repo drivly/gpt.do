@@ -17,7 +17,10 @@ export const api = {
 
 export default {
   fetch: async (req, env) => {
-    const { user, origin, requestId, method, body, time, pathSegments, pathOptions, url, query } = await env.CTX.fetch(req).then(res => res.json())
+    const { user, origin, requestId, method, body, time, pathname, pathSegments, pathOptions, url, query } = await env.CTX.fetch(req).then(res => res.json())
+    if (pathname == '/webhooks/github') {
+      return json({ success: true })
+    }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     const options = {
       model: 'code-davinci-002',
@@ -33,3 +36,5 @@ export default {
     return new Response(JSON.stringify({ api, options, completion, codeLines, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
   },
 }
+
+const json = obj => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
