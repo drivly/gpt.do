@@ -17,7 +17,8 @@ export const api = {
 
 export default {
   fetch: async (req, env) => {
-    const { user, origin, requestId, method, body, time, pathname, pathSegments, pathOptions, url, query } = await env.CTX.fetch(req).then(res => res.json())
+    const context = await env.CTX.fetch(req).then(res => res.json())
+    const { user, origin, requestId, method, body, time, pathname, pathSegments, pathOptions, url, query } = context
     if (pathname == '/webhooks/github') {
       return json({ success: true, user })
     }

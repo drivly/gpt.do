@@ -1,0 +1,16 @@
+model: gpt-4
+
+input:
+  number: 50
+  titles: titles
+  contentType: poems
+  topic: Startup Life
+  words: 2000
+
+list:
+  - system: You are a helpful assistant that only responds in YAML format arrays.
+  - user: Respond with a list of {{number}} possible {{titles}} of {{contentType}} for the topic "{{topic}}". Do not count the items in the list.
+
+forEach:
+  - system: You are a helpful assistant that only responds in Markdown format that starts with title `# `.
+  - user: Respond with a {{words}} word {{contentType}} with a title of "{{item}}" which will be posted on a website about {{topic}}.
