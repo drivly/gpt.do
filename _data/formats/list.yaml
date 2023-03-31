@@ -1,5 +1,12 @@
 model: gpt-4
 
+input:
+  number: 50
+  titles: titles
+  contentType: blog
+  topic: How to write a blog post
+  words: 2000
+
 messages:
   - role: system
     content: You are a helpful assistant that only responds in YAML format arrays. Do not count the items in the list.
