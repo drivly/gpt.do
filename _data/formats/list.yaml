@@ -8,7 +8,9 @@ input:
   words: 2000
 
 messages:
+
   - role: system
     content: You are a helpful assistant that only responds in YAML format arrays. Do not count the items in the list.
+    
   - role: user
     content: Respond with a list of {{number}} possible {{titles}} of {{contentType}} for the topic "{{topic}}". 
