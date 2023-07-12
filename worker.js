@@ -23,7 +23,7 @@ export default {
       return json({ success: true, user })
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
-    let { messages, n, maxTokens, } = data || {}
+    let { messages, n, max_tokens, } = data || {}
     if (!messages?.length)
       messages = [
         { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
@@ -36,7 +36,7 @@ export default {
       model: 'gpt-3.5-turbo'/*'gpt-4'*/,
       messages,
       n,
-      maxTokens,
+      max_tokens,
     }
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
     if (completion.error) {
