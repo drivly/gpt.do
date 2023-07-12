@@ -5,8 +5,8 @@ export const api = {
   url: 'https://gpt.do/api',
   type: 'https://apis.do/ai',
   endpoints: {
-    list: 'https://gpt.do/list',
-    get: 'https://gpt.do/:id',
+    get: 'https://gpt.do/:message',
+    post: 'https://gpt.do/api',
   },
   site: 'https://gpt.do',
   login: 'https://gpt.do/login',
@@ -18,23 +18,25 @@ export const api = {
 export default {
   fetch: async (req, env) => {
     const context = await env.CTX.fetch(req).then(res => res.json())
-    const { user, origin, requestId, method, body, time, pathname, pathSegments, pathOptions, url, query } = context
+    const { user, origin, requestId, method, json: data, time, pathname, pathSegments, pathOptions, url, query } = context
     if (pathname == '/webhooks/github') {
       return json({ success: true, user })
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
-    const options = {
-      // model: 'gpt-4',
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {'role': 'system', 'content': 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'},
-        {'role': 'user', 'content': pathSegments[0].replace('_',' ').replace('+',' ') },
+    const messages = data?.messages || [
+        { role: 'user', content: pathSegments[0].replace('_',' ').replace('+',' ') },
     ]
+    if (!messages.find(m => m.role === 'system')) {
+      const content = data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'
+      messages.unshift({ role: 'system', content, })
+    }
+    const options = {
+      model: 'gpt-3.5-turbo'/*'gpt-4'*/,
+      messages,
     }
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}).then(res => res.json())
     const response = completion.choices[0].message.content.split('\n')
     return json({response, ...completion, user})
-    // return new Response(JSON.stringify({ api, options, completion, codeLines, user }, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
   },
 }
 
