@@ -18,13 +18,13 @@ export const api = {
 export default {
   fetch: async (req, env) => {
     const context = await env.CTX.fetch(req).then(res => res.json())
-    const { user, origin, requestId, method, json: data, time, pathname, pathSegments, pathOptions, url, query } = context
+    const { user, json: data, pathname, pathSegments, } = context
     if (pathname == '/webhooks/github') {
       return json({ success: true, user })
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     const messages = data?.messages || [
-        { role: 'user', content: pathSegments[0].replace('_',' ').replace('+',' ') },
+      { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
     ]
     if (!messages.find(m => m.role === 'system')) {
       const content = data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'
@@ -34,10 +34,14 @@ export default {
       model: 'gpt-3.5-turbo'/*'gpt-4'*/,
       messages,
     }
-    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers:{ 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }}).then(res => res.json())
+    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+    if (completion.error) {
+      console.error(completion.error)
+      return json({ error: "An error occurred while processing your request." }, 500)
+    }
     const response = completion.choices[0].message.content.split('\n')
-    return json({response, ...completion, user})
+    return json({ response, ...completion, user })
   },
 }
 
-const json = obj => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }})
+const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status, })
