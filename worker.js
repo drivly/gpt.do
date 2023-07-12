@@ -23,9 +23,11 @@ export default {
       return json({ success: true, user })
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
-    const messages = data?.messages || [
-      { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
-    ]
+    let { messages, n, maxTokens, } = data || {}
+    if (!messages?.length)
+      messages = [
+        { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
+      ]
     if (!messages.find(m => m.role === 'system')) {
       const content = data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'
       messages.unshift({ role: 'system', content, })
@@ -33,6 +35,8 @@ export default {
     const options = {
       model: 'gpt-3.5-turbo'/*'gpt-4'*/,
       messages,
+      n,
+      maxTokens,
     }
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
     if (completion.error) {
