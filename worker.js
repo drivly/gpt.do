@@ -37,6 +37,7 @@ export default {
       messages,
       n,
       max_tokens,
+      user: data?.user || undefined,
     }
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
     if (completion.error) {
