@@ -23,7 +23,7 @@ export default {
       return json({ success: true, user })
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
-    let { messages, n, max_tokens, } = data || {}
+    let { messages, n, max_tokens, model, } = data || {}
     if (!messages?.length)
       messages = [
         { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
@@ -33,7 +33,7 @@ export default {
       messages.unshift({ role: 'system', content, })
     }
     const options = {
-      model: 'gpt-3.5-turbo'/*'gpt-4'*/,
+      model: user.role ==='admin' && model ? model : 'gpt-3.5-turbo',
       messages,
       n,
       max_tokens,
