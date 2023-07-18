@@ -45,7 +45,7 @@ export default {
       console.error(completion.error)
       return json({ error: "An error occurred while processing your request." }, 500)
     }
-    const response = completion.choices[0].message.content.split('\n')
+    const response = completion.choices?.[0]?.message?.content?.split('\n')
     return json({ response, ...completion, user })
   },
 }
