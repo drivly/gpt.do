@@ -32,7 +32,6 @@ export default {
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
       input = { ...template.input, ...query }
-      console.log(JSON.stringify({ input }))
       if (Object.keys(input).length) {
         for (let message of messages) {
           fillMessageTemplate(message, input)
@@ -109,4 +108,3 @@ function formatMessages(forEach) {
       content: i[0][1],
     }))
 }
-
