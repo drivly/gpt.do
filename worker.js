@@ -33,12 +33,10 @@ export default {
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
       input = { ...template.input, ...query }
       if (Object.keys(input).length) {
-        for (let message of messages) {
-          fillMessageTemplate(message, input)
-        }
+        fillMessageTemplate(messages, input)
       }
       if (template.forEach?.length) {
-        forEach = formatMessages(Array.isArray(template.forEach) ? template.forEach : [template.forEach])
+        forEach = formatMessages(Array.isArray(template.forEach[0]) ? template.forEach : [template.forEach])
       }
     }
 
@@ -95,9 +93,11 @@ export default {
 
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status, })
 
-function fillMessageTemplate(message, input) {
-  if (message.content) {
-    message.content = message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key])
+function fillMessageTemplate(messages, input) {
+  for (let message of messages) {
+    if (message.content) {
+      message.content = message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key])
+    }
   }
 }
 
