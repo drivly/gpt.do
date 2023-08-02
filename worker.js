@@ -70,7 +70,7 @@ export default {
     for (let each of forEach) {
       for (let item of lastResponse) {
         input['item'] = item.replace(/^- \[ \]/, '')
-        messages.push(fillMessageTemplate(each, input))
+        messages = messages.concat(fillMessageTemplate(each, input))
         completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
         if (completion.error) {
           console.error(completion.error)
