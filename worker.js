@@ -24,21 +24,22 @@ export default {
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     let { messages, functions, n, max_tokens, model, } = data || {}
-    let forEach = []
-    if (['prompt', 'format'].includes(pathSegments[0])) {
+    let forEach = [], input = { ...query }
+    if (['prompts', 'formats'].includes(pathSegments[0])) {
       const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
       const template = templates[pathSegments[0]][pathSegments[1]]
       if (!template) return json({ error: 'Template not found.' }, 404)
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
-      let input = { ...template.input, ...query }
+      input = { ...template.input, ...query }
       console.log(JSON.stringify({ input }))
       if (Object.keys(input).length) {
-        fillMessageTemplate(messages, input)
+        for (let message of messages) {
+          fillMessageTemplate(message, input)
+        }
       }
       if (template.forEach?.length) {
         forEach = formatMessages(Array.isArray(template.forEach) ? template.forEach : [template.forEach])
-        fillMessageTemplate(forEach, input)
       }
     }
 
@@ -58,37 +59,46 @@ export default {
       functions,
       user: data?.user || undefined,
     }
-    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+    let completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
     if (completion.error) {
       console.error(completion.error)
       return json({ error: "An error occurred while processing your request." }, 500)
     }
-    let response = completion.choices?.[0]?.message?.content?.split('\n')
+    let lastResponse
+    let response = lastResponse = completion.choices?.[0]?.message?.content?.split('\n')
     messages.push(completion.choices?.[0]?.message)
+    const completions = [completion]
 
     for (let each of forEach) {
-      messages.push(each)
-
-      const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
-      if (completion.error) {
-        console.error(completion.error)
-        return json({ error: "An error occurred while processing your request." }, 500)
+      for (let item of lastResponse) {
+        input['item'] = item.replace(/^- \[ \]/, '')
+        fillMessageTemplate(each, input)
+        messages.push(each)
+        completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+        if (completion.error) {
+          console.error(completion.error)
+        } else {
+          response = response.concat(lastResponse = completion.choices?.[0]?.message?.content?.split('\n'))
+          messages.push(completion.choices?.[0]?.message)
+          completions.push(completion)
+        }
       }
-      response = response.concat(completion.choices?.[0]?.message?.content?.split('\n'))
-      messages.push(completion.choices?.[0]?.message)
     }
 
-    return json({ response, ...completion, user })
+    return json({
+      response,
+      ...(completions.length === 1 ? completions[0] : {}),
+      completions: completions.length > 1 ? completions : undefined,
+      user,
+    })
   },
 }
 
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status, })
 
-function fillMessageTemplate(messages, input) {
-  for (let message of messages) {
-    if (message.content) {
-      message.content = message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key])
-    }
+function fillMessageTemplate(message, input) {
+  if (message.content) {
+    message.content = message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key])
   }
 }
 
