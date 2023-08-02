@@ -19,6 +19,7 @@ export default {
   fetch: async (req, env) => {
     const { user, json: data, pathname, pathSegments, query, }
       = await env.CTX.fetch(req).then(res => res.json())
+    if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
     if (pathname == '/webhooks/github') {
       return json({ success: true, user })
     }
@@ -33,10 +34,10 @@ export default {
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
       input = { ...template.input, ...query }
       if (Object.keys(input).length) {
-        fillMessageTemplate(messages, input)
+        messages = fillMessageTemplate(messages, input)
       }
       if (template.forEach?.length) {
-        forEach = formatMessages(Array.isArray(template.forEach[0]) ? template.forEach : [template.forEach])
+        forEach = Array.isArray(template.forEach[0]) ? template.forEach.map(formatMessages) : [formatMessages(template.forEach)]
       }
     }
 
@@ -69,8 +70,7 @@ export default {
     for (let each of forEach) {
       for (let item of lastResponse) {
         input['item'] = item.replace(/^- \[ \]/, '')
-        fillMessageTemplate(each, input)
-        messages.push(each)
+        messages.push(fillMessageTemplate(each, input))
         completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
         if (completion.error) {
           console.error(completion.error)
@@ -94,11 +94,10 @@ export default {
 const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status, })
 
 function fillMessageTemplate(messages, input) {
-  for (let message of messages) {
-    if (message.content) {
-      message.content = message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key])
-    }
-  }
+  return messages.map(message => ({
+    ...message,
+    content: message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key]),
+  }))
 }
 
 function formatMessages(forEach) {
