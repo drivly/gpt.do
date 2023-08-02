@@ -25,6 +25,7 @@ export default {
     }
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     let { messages, functions, n, max_tokens, model, } = data || {}
+    if (!model) model = query.model
     let forEach = [], input = { ...query }
     if (['prompts', 'formats'].includes(pathSegments[0])) {
       const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
@@ -50,7 +51,7 @@ export default {
       messages.unshift({ role: 'system', content, })
     }
     const options = {
-      model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
+      model: user.role === 'admin' &&  model ? model : 'gpt-3.5-turbo',
       messages,
       n,
       max_tokens,
@@ -70,7 +71,7 @@ export default {
     for (let each of forEach) {
       for (let item of lastResponse) {
         input['item'] = item.replace(/^- \[ \]/, '')
-        messages = messages.concat(fillMessageTemplate(each, input))
+        options.messages = fillMessageTemplate(each, input)
         completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
         if (completion.error) {
           console.error(completion.error)
