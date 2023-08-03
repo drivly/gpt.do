@@ -95,7 +95,7 @@ export default {
       response: responses.length === 0 ? response : response.concat(responses.flatMap(s => s.flatMap(i => i))),
       ...(completions.length === 0 ? completion : {}),
       completions: completions.length === 0 ? undefined : [completion].concat(completions.flatMap(s => s.flatMap(i => i))),
-      inputMessages: query.debug && user.admin ? [messages].concat(inputMessages) : undefined,
+      inputMessages: query.debug && user.role === 'admin' ? [messages].concat(inputMessages) : undefined,
       user,
     })
   },
