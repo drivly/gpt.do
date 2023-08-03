@@ -58,7 +58,7 @@ export default {
       functions,
       user: data?.user || undefined,
     }
-    let completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
     if (completion.error) {
       console.error(completion.error)
       return json({ error: "An error occurred while processing your request." }, 500)
@@ -68,19 +68,24 @@ export default {
     messages.push(completion.choices?.[0]?.message)
     const completions = [completion]
 
-    for (let each of forEach) {
+    for (let step of forEach) {
+      const promises = []
       for (let item of lastResponse) {
         input['item'] = item.replace(/^[\- \[\]"\\]*/, '')
-        options.messages = fillMessageTemplate(each, input)
-        completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
-        if (completion.error) {
-          console.error(completion.error)
-        } else {
-          response = response.concat(lastResponse = completion.choices?.[0]?.message?.content?.split('\n'))
-          messages.push(completion.choices?.[0]?.message)
-          completions.push(completion)
-        }
+        options.messages = fillMessageTemplate(step, input)
+        promises.push(fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } })
+          .then(res => res.json())
+          .then(c => {
+            if (c.error) {
+              console.error(c.error)
+            } else {
+              response = response.concat(lastResponse = c.choices?.[0]?.message?.content?.split('\n'))
+              messages.push(c.choices?.[0]?.message)
+              completions.push(c)
+            }
+          }))
       }
+      await Promise.all(promises)
     }
 
     return json({
