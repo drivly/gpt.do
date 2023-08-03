@@ -1,0 +1,18 @@
+model: gpt-4-0314
+
+input:
+  number: 1
+  titles: titles
+  contentType: blog
+  topic: How to write a blog post
+  words: 2000
+
+list:
+  - system: You are a helpful assistant that only responds in YAML format arrays.
+  - user: Respond with a list of {{number}} possible {{titles}} of {{contentType}} for the topic "{{topic}}". Do not count or number the items in the list.
+
+forEach:
+  - - system: You are a silly assistant that converts {{contentType}} {{titles}} into pirate speak. Respond only with the pirate speak title.
+    - user: Respond with a {{contentType}} {{titles}} of {{topic}} in pirate speak.
+  - - system: You are a helpful assistant that only responds in Markdown format that starts with title `# `.
+    - user: Respond with a {{words}} word {{contentType}} post on the topic "{{item}}" which will be posted on a {{contentType}} about {{topic}}.

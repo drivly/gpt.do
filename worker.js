@@ -63,29 +63,29 @@ export default {
       console.error(completion.error)
       return json({ error: "An error occurred while processing your request." }, 500)
     }
-    let lastResponse
-    let response = lastResponse = completion.choices?.[0]?.message?.content?.split('\n')
-    const completions = [completion]
+    let response = completion.choices?.[0]?.message?.content?.split('\n')
 
-    for (let step of forEach) {
+    for (let i = 0; i < forEach.length; i++) {
+      const step = forEach[i]
+      step.items = response
       const promises = []
-      for (let item of lastResponse) {
+      for (let item of step.items) {
         input['item'] = item.replace(/^[\- \[\]"\\]*/, '')
         options.messages = fillMessageTemplate(step, input)
         promises.push(fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } })
           .then(res => res.json())
           .then(c => {
-            completions.push(c)
-            if (!c.error) response = response.concat(lastResponse = c.choices?.[0]?.message?.content?.split('\n'))
+            item.completion = c
+            item.response = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
           }))
       }
       await Promise.all(promises)
     }
 
     return json({
-      response,
-      ...(completions.length === 1 ? completions[0] : {}),
-      completions: completions.length > 1 ? completions : undefined,
+      response: forEach.length === 0 ? response : [response].concat(forEach.flatMap(s => s.items.map(i => i.response))),
+      ...(forEach.length === 0 ? completion : {}),
+      completions: forEach.length === 0 ? undefined : [completion].concat(forEach.flatMap(s => s.items.map(i => i.completion))),
       user,
     })
   },
