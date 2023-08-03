@@ -26,14 +26,17 @@ export default {
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     let { messages, functions, n, max_tokens, model, } = data || {}
     if (!model) model = query.model
-    let forEach = [], input = { ...query }
+    let forEach = [], input = { ...query }, file
     if (['prompts', 'formats'].includes(pathSegments[0])) {
       const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
       const template = templates[pathSegments[0]][pathSegments[1]]
       if (!template) return json({ error: 'Template not found.' }, 404)
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
-      input = { ...template.input, ...query }
+      if (query.fileUrl) {
+        file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
+      }
+      input = { ...template.input, ...query, file, }
       if (Object.keys(input).length) {
         messages = fillMessageTemplate(messages, input)
       }
@@ -41,14 +44,20 @@ export default {
         forEach = Array.isArray(template.forEach[0]) ? template.forEach.map(formatMessages) : [formatMessages(template.forEach)]
       }
     }
-
+    if (!file && query.fileUrl) {
+      file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
+      input.file = file
+    }
+    if (file && !messages.find(m => m.role === 'user')) {
+      messages = [{ role: 'user', content: file }]
+    }
     if (!messages?.length && pathSegments[0])
       messages = [
         { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
       ]
     if (!messages) messages = []
     if (!messages.find(m => m.role === 'system')) {
-      const content = data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'
+      const content = query.system || data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'
       messages.unshift({ role: 'system', content, })
     }
     const options = {
