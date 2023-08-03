@@ -80,7 +80,7 @@ export default {
               ...options,
               messages: fillMessageTemplate(forEach[i], {
                 ...input,
-                item: fork[j].replace(/^[\- \[\]"\\]*/, '')
+                item: fork[j].replace(/(^[\- \[\]"\\]*|"$)/g, '')
               })
             }), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }
           })
