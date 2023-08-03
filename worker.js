@@ -42,10 +42,11 @@ export default {
       }
     }
 
-    if (!messages?.length)
+    if (!messages?.length && pathSegments[0])
       messages = [
         { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
       ]
+    if (!messages) messages = []
     if (!messages.find(m => m.role === 'system')) {
       const content = data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.'
       messages.unshift({ role: 'system', content, })
@@ -64,39 +65,38 @@ export default {
       return json({ error: "An error occurred while processing your request." }, 500)
     }
     let response = completion.choices?.[0]?.message?.content?.split('\n')
+    let completions = []
+    let responses = []
 
-    function recurseItems(step) {
+    for (let i = 0; i < forEach.length; i++) {
+      forEach[i].items = i === 0 ? [response] : responses[i - 1]
+      completions[i] = forEach[i].items.map(() => null)
+      responses[i] = forEach[i].items.map(() => null)
       const promises = []
-      for (let item of step.items) {
-        promises.push(fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'post', body: JSON.stringify({
-            ...options,
-            messages: fillMessageTemplate(step, {
-              ...input,
-              item: item.replace(/^[\- \[\]"\\]*/, '')
-            })
-          }), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }
-        })
-          .then(res => res.json())
-          .then(c => {
-            item.completion = c
-            item.items = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
-            return recurseItems(item)
-          }))
-      }
-      return Promise.all(promises)
+      for (let fork of forEach[i].items)
+        for (let j = 0; j < fork.length; j++) {
+          promises.push(fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'post', body: JSON.stringify({
+              ...options,
+              messages: fillMessageTemplate(forEach[i], {
+                ...input,
+                item: fork[j].replace(/^[\- \[\]"\\]*/, '')
+              })
+            }), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }
+          })
+            .then(res => res.json())
+            .then(c => {
+              completions[i][j] = c
+              responses[i][j] = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
+            }))
+        }
+      await Promise.all(promises)
     }
 
-    const promises = []
-    for (let step of forEach) {
-      step.items = response
-      promises.push(recurseItems(step))
-    }
-    await Promise.all(promises)
     return json({
-      response: forEach.length === 0 ? response : [response].concat(forEach.flatMap(s => s.items.map(i => i.response))),
-      ...(forEach.length === 0 ? completion : {}),
-      completions: forEach.length === 0 ? undefined : [completion].concat(forEach.flatMap(s => s.items.map(i => i.completion))),
+      response: responses.length === 0 ? response : response.concat(responses.flatMap(s => s.flatMap(i => i))),
+      ...(completions.length === 0 ? completion : {}),
+      completions: completions.length === 0 ? undefined : [completion].concat(completions.flatMap(s => s.flatMap(i => i))),
       user,
     })
   },
