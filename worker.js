@@ -65,9 +65,7 @@ export default {
     }
     let response = completion.choices?.[0]?.message?.content?.split('\n')
 
-    for (let i = 0; i < forEach.length; i++) {
-      const step = forEach[i]
-      step.items = response
+    function recurseItems(step) {
       const promises = []
       for (let item of step.items) {
         input['item'] = item.replace(/^[\- \[\]"\\]*/, '')
@@ -76,12 +74,19 @@ export default {
           .then(res => res.json())
           .then(c => {
             item.completion = c
-            item.response = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
+            item.items = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
+            return recurseItems(item)
           }))
       }
-      await Promise.all(promises)
+      return Promise.all(promises)
     }
 
+    const promises = []
+    for (let step of forEach) {
+      step.items = response
+      promises.push(recurseItems(step))
+    }
+    await Promise.all(promises)
     return json({
       response: forEach.length === 0 ? response : [response].concat(forEach.flatMap(s => s.items.map(i => i.response))),
       ...(forEach.length === 0 ? completion : {}),
