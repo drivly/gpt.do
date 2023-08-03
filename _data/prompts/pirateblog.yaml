@@ -13,6 +13,6 @@ list:
 
 forEach:
   - - system: You are a silly assistant that converts {{contentType}} {{titles}} into pirate speak. Respond only with the pirate speak title.
-    - user: Respond with a {{contentType}} {{titles}} of {{topic}} in pirate speak.
+    - user: '{{item}}'
   - - system: You are a helpful assistant that only responds in Markdown format that starts with title `# `.
     - user: Respond with a {{words}} word {{contentType}} post on the topic "{{item}}" which will be posted on a {{contentType}} about {{topic}}.
