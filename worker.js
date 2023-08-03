@@ -68,9 +68,15 @@ export default {
     function recurseItems(step) {
       const promises = []
       for (let item of step.items) {
-        input['item'] = item.replace(/^[\- \[\]"\\]*/, '')
-        options.messages = fillMessageTemplate(step, input)
-        promises.push(fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } })
+        promises.push(fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'post', body: JSON.stringify({
+            ...options,
+            messages: fillMessageTemplate(step, {
+              ...input,
+              item: item.replace(/^[\- \[\]"\\]*/, '')
+            })
+          }), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }
+        })
           .then(res => res.json())
           .then(c => {
             item.completion = c
