@@ -53,7 +53,7 @@ export default {
       model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
       messages,
       n,
-      max_tokens,
+      max_tokens: max_tokens ? parseInt(max_tokens) : undefined,
       functions,
       user: data?.user || undefined,
     }
