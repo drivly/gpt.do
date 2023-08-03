@@ -43,12 +43,14 @@ export default {
       file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
       input.file = file
     }
-    if (file && !messages.find(m => m.role === 'user')) messages = [{ role: 'user', content: file }]
-    if (!messages?.length && pathSegments[0]) messages = [
+    if (!messages) messages = []
+    if (file && !messages.find(m => m.role === 'user')) messages.push({ role: 'user', content: file })
+    if (!messages.length && pathSegments[0]) messages = [
       { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
     ]
-    if (!messages) messages = []
-    if (!messages.find(m => m.role === 'system')) messages.unshift({ role: 'system', content: query.system || data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.', })
+    if (!messages.find(m => m.role === 'system')) {
+      messages.unshift({ role: 'system', content: query.system || data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.', })
+    }
     const options = {
       model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
       messages,
@@ -62,7 +64,7 @@ export default {
       console.error(completion.error)
       return json({
         error: "An error occurred while processing your request.",
-        messages: query.debug && user.role === 'admin' ? [messages] : undefined, 
+        messages: query.debug && user.role === 'admin' ? [messages] : undefined,
         completion: query.debug && user.role === 'admin' ? completion : undefined,
       }, 500)
     }
