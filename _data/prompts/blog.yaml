@@ -9,7 +9,7 @@ input:
 
 list:
   - system: You are a helpful assistant that only responds in YAML format arrays.
-  - user: Respond with a list of {{number}} possible {{titles}} of {{contentType}} for the topic "{{topic}}". Do not count the items in the list.
+  - user: Respond with a list of {{number}} possible {{titles}} of {{contentType}} for the topic "{{topic}}". Do not count or number the items in the list.
 
 forEach:
   - system: You are a helpful assistant that only responds in Markdown format that starts with title `# `.

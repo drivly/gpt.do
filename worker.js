@@ -65,7 +65,6 @@ export default {
     }
     let lastResponse
     let response = lastResponse = completion.choices?.[0]?.message?.content?.split('\n')
-    messages.push(completion.choices?.[0]?.message)
     const completions = [completion]
 
     for (let step of forEach) {
@@ -76,13 +75,8 @@ export default {
         promises.push(fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } })
           .then(res => res.json())
           .then(c => {
-            if (c.error) {
-              console.error(c.error)
-            } else {
-              response = response.concat(lastResponse = c.choices?.[0]?.message?.content?.split('\n'))
-              messages.push(c.choices?.[0]?.message)
-              completions.push(c)
-            }
+            completions.push(c)
+            if (!c.error) response = response.concat(lastResponse = c.choices?.[0]?.message?.content?.split('\n'))
           }))
       }
       await Promise.all(promises)
