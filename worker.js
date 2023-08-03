@@ -60,7 +60,11 @@ export default {
     const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
     if (completion.error) {
       console.error(completion.error)
-      return json({ error: "An error occurred while processing your request." }, 500)
+      return json({
+        error: "An error occurred while processing your request.",
+        messages: query.debug && user.role === 'admin' ? [messages] : undefined, 
+        completion: query.debug && user.role === 'admin' ? completion : undefined,
+      }, 500)
     }
     let response = completion.choices?.[0]?.message?.content?.split('\n')
     let completions = []
