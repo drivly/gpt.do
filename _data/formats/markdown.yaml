@@ -7,9 +7,7 @@ input:
   topic: How to write a blog post
   words: 2000
 
-
 messages:
-
   - role: system
     content: You are a helpful assistant that only responds in Markdown format that starts with title `# `.
 
