@@ -1,7 +1,7 @@
 model: gpt-4-0314
 
 input:
-  number: 50
+  number: 1
   titles: titles
   contentType: blog
   topic: How to write a blog post

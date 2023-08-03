@@ -51,7 +51,7 @@ export default {
       messages.unshift({ role: 'system', content, })
     }
     const options = {
-      model: user.role === 'admin' &&  model ? model : 'gpt-3.5-turbo',
+      model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
       messages,
       n,
       max_tokens,
