@@ -17,6 +17,9 @@ export const api = {
 
 export default {
   fetch: async (req, env) => {
+    async function getCompletion(options) {
+      return await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+    }
     const { user, json: data, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
     if (pathname == '/webhooks/github') return json({ success: true, user })
@@ -32,12 +35,17 @@ export default {
       if (!template) return json({ error: 'Template not found.' }, 404)
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
+      if (!max_tokens) max_tokens = template.max_tokens
       if (query.fileUrl) {
         file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
       }
       input = { ...template.input, ...query, file, }
       if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
       if (template.forEach?.length) forEach = Array.isArray(template.forEach[0]) ? template.forEach.map(formatMessages) : [formatMessages(template.forEach)]
+    }
+    if (max_tokens) {
+      max_tokens = parseInt(max_tokens)
+      if (user.role !== 'admin' && max_tokens > 1000) max_tokens = 1000
     }
     if (!file && query.fileUrl) {
       file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
@@ -55,11 +63,11 @@ export default {
       model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
       messages,
       n,
-      max_tokens: max_tokens ? parseInt(max_tokens) : undefined,
+      max_tokens,
       functions,
       user: data?.user || undefined,
     }
-    const completion = await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+    const completion = await getCompletion(options)
     if (completion.error) {
       console.error(completion.error)
       return json({
@@ -84,12 +92,7 @@ export default {
             ...input,
             item: fork[j].replace(/(^[\- \[\]"\\]*|"$)/g, '')
           })
-          promises.push(fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'post', body: JSON.stringify({
-              ...options,
-              messages: inputMessages[i][j]
-            }), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY }
-          }).then(res => res.json()).then(c => {
+          promises.push(getCompletion({ ...options, messages: inputMessages[i][j] }).then(c => {
             completions[i][j] = c
             responses[i][j] = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
           }))
