@@ -81,12 +81,12 @@ export default {
     let responses = []
     let inputMessages = []
     for (let i = 0; i < forEach.length; i++) {
-      forEach[i].items = i === 0 ? [response] : responses[i - 1]
-      completions[i] = forEach[i].items.map(() => null)
-      responses[i] = forEach[i].items.map(() => null)
-      inputMessages[i] = forEach[i].items.map(() => null)
+      const items = i === 0 ? [response] : responses[i - 1]
+      completions[i] = items.map(() => null)
+      responses[i] = items.map(() => null)
+      inputMessages[i] = items.map(() => null)
       const promises = []
-      for (let fork of forEach[i].items)
+      for (let fork of items)
         for (let j = 0; j < fork.length; j++) {
           inputMessages[i][j] = fillMessageTemplate(forEach[i], {
             ...input,
@@ -114,7 +114,8 @@ const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { heade
 
 function fillMessageTemplate(messages, input) {
   return messages.map(message => ({
-    ...message,
+    role: message.role,
+    name: message.name,
     content: message.content.replace(/\{\{([^}]+)\}\}/g, (_, key) => input[key]),
   }))
 }
