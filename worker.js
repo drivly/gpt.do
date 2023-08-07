@@ -34,9 +34,9 @@ export default {
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
     let { messages, functions, } = data || {}
     let { n, max_tokens, model, } = query || {}
-    if (!n) n = data.n
-    if (!max_tokens) max_tokens = data.max_tokens
-    if (!model) model = data.model
+    if (!n) n = data?.n
+    if (!max_tokens) max_tokens = data?.max_tokens
+    if (!model) model = data?.model
     let steps = [], input = { ...query }
     if (['prompts', 'formats'].includes(pathSegments[0])) {
       const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
