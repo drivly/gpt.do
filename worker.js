@@ -29,43 +29,45 @@ export default {
     }
     const { user, json: data, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
+    // TODO: Complete stub for GitHub webhook
     if (pathname == '/webhooks/github') return json({ success: true, user })
     if (!user.authenticated) return Response.redirect('https://gpt.do/login')
-    let { messages, functions, n, max_tokens, model, } = data || {}
-    if (!n) n = query.n
-    if (!max_tokens) max_tokens = query.max_tokens
-    if (!model) model = query.model
-    let steps = [], input = { ...query }, file
+    let { messages, functions, } = data || {}
+    let { n, max_tokens, model, } = query || {}
+    if (!n) n = data.n
+    if (!max_tokens) max_tokens = data.max_tokens
+    if (!model) model = data.model
+    let steps = [], input = { ...query }
     if (['prompts', 'formats'].includes(pathSegments[0])) {
       const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
       const template = templates[pathSegments[0]][pathSegments[1]]
       if (!template) return json({ error: 'Template not found.' }, 404)
+      if (!n) n = template.n
+      if (!max_tokens) max_tokens = template.max_tokens
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
-      if (!max_tokens) max_tokens = template.max_tokens
+      input = { ...template.input, ...query, }
       if (query.fileUrl) {
-        file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
+        input.file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
       }
-      input = { ...template.input, ...query, file, }
       if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
       if (template.forEach?.length)
         steps = Array.isArray(template.forEach[0])
           ? template.forEach.map(formatMessages)
           : [formatMessages(template.forEach)]
     }
+    if (n) n = parseInt(n)
     if (max_tokens) {
       max_tokens = parseInt(max_tokens)
       if (user.role !== 'admin' && max_tokens > 1000) max_tokens = 1000
     }
-    if (!file && query.fileUrl) {
-      file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
-      input.file = file
-    }
     if (!messages) messages = []
     if (file && !messages.find(m => m.role === 'user')) messages.push({ role: 'user', content: file })
-    if (!messages.length && pathSegments[0]) messages = [
-      { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
-    ]
+    if (!messages.length && pathSegments[0]) {
+      messages = [
+        { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
+      ]
+    }
     if (!messages.find(m => m.role === 'system')) {
       messages.unshift({
         role: 'system',
