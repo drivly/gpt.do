@@ -62,7 +62,7 @@ export default {
       if (user.role !== 'admin' && max_tokens > 1000) max_tokens = 1000
     }
     if (!messages) messages = []
-    if (file && !messages.find(m => m.role === 'user')) messages.push({ role: 'user', content: file })
+    if (input.file && !messages.find(m => m.role === 'user')) messages.push({ role: 'user', content: input.file })
     if (!messages.length && pathSegments[0]) {
       messages = [
         { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
