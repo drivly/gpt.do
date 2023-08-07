@@ -18,7 +18,14 @@ export const api = {
 export default {
   fetch: async (req, env) => {
     async function getCompletion(options) {
-      return await fetch('https://api.openai.com/v1/chat/completions', { method: 'post', body: JSON.stringify(options), headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + env.OPENAI_API_KEY } }).then(res => res.json())
+      return await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'post',
+        body: JSON.stringify(options),
+        headers: {
+          'content-type': 'application/json',
+          'authorization': 'Bearer ' + env.OPENAI_API_KEY
+        }
+      }).then(res => res.json())
     }
     const { user, json: data, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
@@ -41,7 +48,10 @@ export default {
       }
       input = { ...template.input, ...query, file, }
       if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
-      if (template.forEach?.length) steps = Array.isArray(template.forEach[0]) ? template.forEach.map(formatMessages) : [formatMessages(template.forEach)]
+      if (template.forEach?.length)
+        steps = Array.isArray(template.forEach[0])
+          ? template.forEach.map(formatMessages)
+          : [formatMessages(template.forEach)]
     }
     if (max_tokens) {
       max_tokens = parseInt(max_tokens)
@@ -57,7 +67,11 @@ export default {
       { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
     ]
     if (!messages.find(m => m.role === 'system')) {
-      messages.unshift({ role: 'system', content: query.system || data?.system || 'You are a helpful assistant who responds in Markdown.  All lists should be Markdown checklists with `- [ ]` items.', })
+      messages.unshift({
+        role: 'system',
+        content: query.system || data?.system
+          || 'You are a helpful assistant who responds in Markdown. All lists should be Markdown checklists with `- [ ]` items.',
+      })
     }
     const options = {
       model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
@@ -102,16 +116,26 @@ export default {
     }
 
     return json({
-      response: responses.length ? responses[responses.length - 1].flatMap(r => r.response) : response,
+      response: responses.length
+        ? responses[responses.length - 1].flatMap(r => r.response)
+        : response,
       ...(responses.length === 0 ? completion : {}),
-      completions: responses.length ? [[completion]].concat(responses.map(r => r.map(r => r.completion))) : undefined,
-      inputMessages: responses.length && query.debug ? [[messages]].concat(responses.map(r => r.map(r => r.inputMessages))) : undefined,
+      completions: responses.length
+        ? [[completion]].concat(responses.map(r => r.map(r => r.completion)))
+        : undefined,
+      inputMessages: responses.length && query.debug
+        ? [[messages]].concat(responses.map(r => r.map(r => r.inputMessages)))
+        : undefined,
       user,
     })
   },
 }
 
-const json = (obj, status) => new Response(JSON.stringify(obj, null, 2), { headers: { 'content-type': 'application/json; charset=utf-8' }, status, })
+const json = (obj, status) =>
+  new Response(JSON.stringify(obj, null, 2), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+    status,
+  })
 
 function fillMessageTemplate(messages, input) {
   return messages.map(message => ({
