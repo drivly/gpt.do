@@ -28,7 +28,7 @@ export default {
     if (!n) n = query.n
     if (!max_tokens) max_tokens = query.max_tokens
     if (!model) model = query.model
-    let forEach = [], input = { ...query }, file
+    let steps = [], input = { ...query }, file
     if (['prompts', 'formats'].includes(pathSegments[0])) {
       const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
       const template = templates[pathSegments[0]][pathSegments[1]]
@@ -41,7 +41,7 @@ export default {
       }
       input = { ...template.input, ...query, file, }
       if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
-      if (template.forEach?.length) forEach = Array.isArray(template.forEach[0]) ? template.forEach.map(formatMessages) : [formatMessages(template.forEach)]
+      if (template.forEach?.length) steps = Array.isArray(template.forEach[0]) ? template.forEach.map(formatMessages) : [formatMessages(template.forEach)]
     }
     if (max_tokens) {
       max_tokens = parseInt(max_tokens)
@@ -72,39 +72,40 @@ export default {
       console.error(completion.error)
       return json({
         error: "An error occurred while processing your request.",
-        messages: query.debug && user.role === 'admin' ? [messages] : undefined,
-        completion: query.debug && user.role === 'admin' ? completion : undefined,
+        completion: query.debug ? completion : undefined,
       }, 500)
     }
-    let response = completion.choices?.[0]?.message?.content?.split('\n')
-    let completions = []
+    let response = completion.choices?.[0]?.message?.content?.split('\n') || []
     let responses = []
-    let inputMessages = []
-    for (let i = 0; i < forEach.length; i++) {
-      const items = i === 0 ? [response] : responses[i - 1]
-      completions[i] = items.map(() => null)
-      responses[i] = items.map(() => null)
-      inputMessages[i] = items.map(() => null)
+    for (let stepIX = 0; stepIX < steps.length; stepIX++) {
+      const step = steps[stepIX]
+      const inputForks = (stepIX === 0 ? response : responses[stepIX - 1].flatMap(r => r.response))
+        .map(r => r.replace(/^- "?(.+?)"?$/, '$1').trim()) // remove markdown list formatting
+        .filter(r => r)
       const promises = []
-      for (let fork of items)
-        for (let j = 0; j < fork.length; j++) {
-          inputMessages[i][j] = fillMessageTemplate(forEach[i], {
-            ...input,
-            item: fork[j].replace(/(^[\- \[\]"\\]*|"$)/g, '')
-          })
-          promises.push(getCompletion({ ...options, messages: inputMessages[i][j] }).then(c => {
-            completions[i][j] = c
-            responses[i][j] = c.error ? [] : c.choices?.[0]?.message?.content?.split('\n')
-          }))
-        }
+      for (let forkIX = 0; forkIX < inputForks.length; forkIX++) {
+        responses[stepIX] = responses[stepIX] || []
+        responses[stepIX][forkIX] = responses[stepIX][forkIX] || {}
+        promises.push(getCompletion({
+          ...options,
+          messages: responses[stepIX][forkIX].inputMessages =
+            fillMessageTemplate(step, {
+              ...input,
+              item: inputForks[forkIX],
+            }),
+        }).then(c => {
+          responses[stepIX][forkIX].completion = c
+          responses[stepIX][forkIX].response = c.choices?.[0]?.message?.content?.split('\n') || []
+        }))
+      }
       await Promise.all(promises)
     }
 
     return json({
-      response: responses.length === 0 ? response : response.concat(responses.flatMap(s => s.flatMap(i => i))),
-      ...(completions.length === 0 ? completion : {}),
-      completions: completions.length === 0 ? undefined : [completion].concat(completions.flatMap(s => s.flatMap(i => i))),
-      inputMessages: query.debug && user.role === 'admin' ? [messages].concat(inputMessages) : undefined,
+      response: responses.length ? responses[responses.length - 1].flatMap(r => r.response) : response,
+      ...(responses.length === 0 ? completion : {}),
+      completions: responses.length ? [[completion]].concat(responses.map(r => r.map(r => r.completion))) : undefined,
+      inputMessages: responses.length && query.debug ? [[messages]].concat(responses.map(r => r.map(r => r.inputMessages))) : undefined,
       user,
     })
   },
