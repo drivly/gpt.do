@@ -39,12 +39,12 @@ export default {
     if (!model) model = data?.model
     let steps = [], input = { ...query }
     if (['prompts', 'formats'].includes(pathSegments[0])) {
-      const [templates, file] = await Promise.allSettled([
-        fetch('https://gpt.do/templates.json').then(res => res.json()).catch(() => ({})),
-        query.fileUrl ? fetch(decodeURIComponent(query.fileUrl)).then(res => res.text()).catch(() => ({})) : undefined,
+      const [{ value: templates }, { value: file }] = await Promise.allSettled([
+        fetch('https://gpt.do/templates.json').then(res => res.json()),
+        query.fileUrl ? fetch(decodeURIComponent(query.fileUrl)).then(res => res.text()) : '',
       ])
       const template = templates[pathSegments[0]][pathSegments[1]]
-      if (!template) return json({ error: 'Template not found.' }, 404)
+      if (!template) return json({ api, error: 'Template not found.', user, }, 404)
       if (!n) n = template.n
       if (!max_tokens) max_tokens = template.max_tokens
       if (!model) model = template.model
@@ -87,8 +87,10 @@ export default {
     if (completion.error) {
       console.error(completion.error)
       return json({
+        api,
         error: "An error occurred while processing your request.",
         completion: query.debug ? completion : undefined,
+        user,
       }, 500)
     }
     let response = completion.choices?.[0]?.message?.content?.split('\n') || []
