@@ -63,9 +63,9 @@ export default {
     }
     if (!messages) messages = []
     if (input.file && !messages.find(m => m.role === 'user')) messages.push({ role: 'user', content: input.file })
-    if (!messages.length && pathSegments[0]) {
+    if (!messages.length && (pathSegments.length === 1 || pathSegments.length === 3)) {
       messages = [
-        { role: 'user', content: pathSegments[0].replace('_', ' ').replace('+', ' ') },
+        { role: 'user', content: decodeURIComponent(pathSegments[pathSegments.length - 1]) },
       ]
     }
     if (!messages.find(m => m.role === 'system')) {
