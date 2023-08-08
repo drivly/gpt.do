@@ -62,11 +62,13 @@ export default {
       if (user.role !== 'admin' && max_tokens > 1000) max_tokens = 1000
     }
     if (!messages) messages = []
-    if (input.file && !messages.find(m => m.role === 'user')) messages.push({ role: 'user', content: input.file })
-    if (!messages.length && (pathSegments.length === 1 || pathSegments.length === 3)) {
-      messages = [
-        { role: 'user', content: decodeURIComponent(pathSegments[pathSegments.length - 1]) },
-      ]
+    if (!messages.find(m => m.role === 'user')) {
+      if (input.file) {
+        messages.push({ role: 'user', content: input.file })
+      }
+      else if (pathSegments.length === 1 && pathSegments[0] || pathSegments.length === 3 && pathSegments[2]) {
+        messages.push({ role: 'user', content: decodeURIComponent(pathSegments[pathSegments.length - 1]) })
+      }
     }
     if (!messages.find(m => m.role === 'system')) {
       messages.unshift({
@@ -127,7 +129,7 @@ export default {
       completions: responses.length
         ? [[completion]].concat(responses.map(r => r.map(r => r.completion)))
         : undefined,
-      inputMessages: responses.length && query.debug
+      inputMessages: query.debug
         ? [[messages]].concat(responses.map(r => r.map(r => r.inputMessages)))
         : undefined,
       user,
