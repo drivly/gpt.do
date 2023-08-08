@@ -25,7 +25,7 @@ export default {
           'content-type': 'application/json',
           'authorization': 'Bearer ' + env.OPENAI_API_KEY
         }
-      }).then(res => res.json())
+      }).then(res => res.json()).catch(() => ({}))
     }
     const { user, json: data, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
@@ -39,17 +39,17 @@ export default {
     if (!model) model = data?.model
     let steps = [], input = { ...query }
     if (['prompts', 'formats'].includes(pathSegments[0])) {
-      const templates = await fetch('https://gpt.do/templates.json').then(res => res.json())
+      const [templates, file] = await Promise.allSettled([
+        fetch('https://gpt.do/templates.json').then(res => res.json()).catch(() => ({})),
+        query.fileUrl ? fetch(decodeURIComponent(query.fileUrl)).then(res => res.text()).catch(() => ({})) : undefined,
+      ])
       const template = templates[pathSegments[0]][pathSegments[1]]
       if (!template) return json({ error: 'Template not found.' }, 404)
       if (!n) n = template.n
       if (!max_tokens) max_tokens = template.max_tokens
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
-      input = { ...template.input, ...query, }
-      if (query.fileUrl) {
-        input.file = await fetch(decodeURIComponent(query.fileUrl)).then(res => res.text())
-      }
+      input = { ...template.input, ...query, file, }
       if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
       if (template.forEach?.length)
         steps = Array.isArray(template.forEach[0])
@@ -114,7 +114,7 @@ export default {
           responses[stepIX][forkIX].response = c.choices?.[0]?.message?.content?.split('\n') || []
         }))
       }
-      await Promise.all(promises)
+      await Promise.allSettled(promises)
     }
 
     return json({
@@ -133,12 +133,6 @@ export default {
   },
 }
 
-const json = (obj, status) =>
-  new Response(JSON.stringify(obj, null, 2), {
-    headers: { 'content-type': 'application/json; charset=utf-8' },
-    status,
-  })
-
 function fillMessageTemplate(messages, input) {
   return messages.map(message => ({
     role: message.role,
@@ -147,10 +141,15 @@ function fillMessageTemplate(messages, input) {
   }))
 }
 
-function formatMessages(forEach) {
-  return forEach
-    .map(Object.entries).map(i => ({
-      role: i[0][0],
-      content: i[0][1],
-    }))
+function formatMessages(messageSet) {
+  return messageSet.map(Object.entries).map(i => ({
+    role: i[0][0],
+    content: i[0][1],
+  }))
 }
+
+const json = (obj, status) =>
+  new Response(JSON.stringify(obj, null, 2), {
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+    status,
+  })
