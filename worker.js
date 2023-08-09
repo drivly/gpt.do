@@ -50,7 +50,6 @@ export default {
       if (!model) model = template.model
       if (!messages?.length) messages = template.messages || formatMessages(template.list) || []
       input = { ...template.input, ...query, file, }
-      if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
       if (template.forEach?.length)
         steps = Array.isArray(template.forEach[0])
           ? template.forEach.map(formatMessages)
@@ -62,13 +61,13 @@ export default {
       if (user.role !== 'admin' && max_tokens > 1000) max_tokens = 1000
     }
     if (!messages) messages = []
-    if (!messages.find(m => m.role === 'user')) {
-      if (input.file) {
-        messages.push({ role: 'user', content: input.file })
-      }
-      else if (pathSegments.length === 1 && pathSegments[0] || pathSegments.length === 3 && pathSegments[2]) {
-        messages.push({ role: 'user', content: decodeURIComponent(pathSegments[pathSegments.length - 1]) })
-      }
+    if (input.file && !messages.find(m => m.role === 'user')) {
+      messages.push({ role: 'user', content: input.file })
+    }
+    if (pathSegments.length === 1 && pathSegments[0] || pathSegments.length === 3 && pathSegments[2]) {
+      input.item = decodeURIComponent(pathSegments[pathSegments.length - 1])
+      if (!messages.find(m => m.role === 'user'))
+        messages.push({ role: 'user', content: input.item })
     }
     if (!messages.find(m => m.role === 'system')) {
       messages.unshift({
@@ -77,8 +76,9 @@ export default {
           || 'You are a helpful assistant who responds in Markdown. All lists should be Markdown checklists with `- [ ]` items.',
       })
     }
+    if (Object.keys(input).length) messages = fillMessageTemplate(messages, input)
     const options = {
-      model: user.role === 'admin' && model ? model : 'gpt-3.5-turbo',
+      model: model && (!model.startsWith('gpt-4') || user.role === 'admin') ? model : 'gpt-3.5-turbo',
       messages,
       n,
       max_tokens,
@@ -103,16 +103,17 @@ export default {
         .map(r => r.replace(/^- "?(.+?)"?$/, '$1').trim()) // remove markdown list formatting
         .filter(r => r)
       const promises = []
+      responses[stepIX] = []
       for (let forkIX = 0; forkIX < inputForks.length; forkIX++) {
-        responses[stepIX] = responses[stepIX] || []
-        responses[stepIX][forkIX] = responses[stepIX][forkIX] || {}
+        responses[stepIX][forkIX] = {
+          inputMessages: fillMessageTemplate(step, {
+            ...input,
+            item: inputForks[forkIX],
+          })
+        }
         promises.push(getCompletion({
           ...options,
-          messages: responses[stepIX][forkIX].inputMessages =
-            fillMessageTemplate(step, {
-              ...input,
-              item: inputForks[forkIX],
-            }),
+          messages: responses[stepIX][forkIX].inputMessages,
         }).then(c => {
           responses[stepIX][forkIX].completion = c
           responses[stepIX][forkIX].response = c.choices?.[0]?.message?.content?.split('\n') || []

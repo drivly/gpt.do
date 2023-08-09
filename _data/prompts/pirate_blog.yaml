@@ -1,11 +1,11 @@
-model: gpt-4-0314
+model: gpt-3.5-turbo
 
 input:
-  number: 1
+  number: 3
   titles: titles
   contentType: blog
   topic: How to write a blog post
-  words: 2000
+  words: 800
 
 list:
   - system: You are a helpful assistant that only responds in YAML format arrays.

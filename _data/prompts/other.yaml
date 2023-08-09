@@ -1,15 +1,15 @@
-model: gpt-4-0314
+model: gpt-3.5-turbo
 
 input:
   number: 1
   titles: titles
-  contentType: poems
+  contentType: poem
   topic: Startup Life
   words: 2000
 
 list:
   - system: You are a helpful assistant that only responds in YAML format arrays.
-  - user: Respond with a list of {{number}} possible {{titles}} of {{contentType}} for the topic "{{topic}}". Do not count the items in the list.
+  - user: Respond with a list of {{number}} possible {{titles}} of {{contentType}}s for the topic "{{topic}}". Do not count the items in the list.
 
 forEach:
   - system: You are a helpful assistant that only responds in Markdown format that starts with title `# `.
