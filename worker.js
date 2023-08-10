@@ -55,6 +55,9 @@ export default {
           ? template.forEach.map(formatMessages)
           : [formatMessages(template.forEach)]
     }
+    if (model && functions?.length && /03\d\d$/.test(model)) {
+      return json({ api, error: model + ' does not support functions.', user, }, 400)
+    }
     if (n) n = parseInt(n)
     if (max_tokens) {
       max_tokens = parseInt(max_tokens)
@@ -82,7 +85,7 @@ export default {
       messages,
       n,
       max_tokens,
-      functions,
+      functions: functions?.length ? functions : undefined,
       user: data?.user || undefined,
     }
     const completion = await getCompletion(options)
