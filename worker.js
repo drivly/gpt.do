@@ -92,6 +92,8 @@ export default {
         api,
         error: "An error occurred while processing your request.",
         completion: query.debug ? completion : undefined,
+        functions: query.debug ? functions : undefined,
+        inputMessages: query.debug ? [[messages]] : undefined,
         user,
       }, 500)
     }
@@ -130,6 +132,7 @@ export default {
       completions: responses.length
         ? [[completion]].concat(responses.map(r => r.map(r => r.completion)))
         : undefined,
+      functions: query.debug ? functions : undefined,
       inputMessages: query.debug
         ? [[messages]].concat(responses.map(r => r.map(r => r.inputMessages)))
         : undefined,
