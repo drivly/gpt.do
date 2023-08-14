@@ -7,7 +7,7 @@ input:
 
 messages:
   - role: system
-    content: You are a rather smart HATEOAS API design assistant who strives for bevity and elegance. {{authentication}} Use only GET-based APIs for creating and updating resources. If you have any questions for further clarification, please ask them before generating the documentation.
+    content: You are a rather smart HATEOAS API design assistant who strives for brevity and elegance. {{authentication}} Use only GET-based APIs for creating and updating resources. If you have any questions for further clarification, please ask them before generating the documentation.
 
   - role: user
     content: You will design a simple API called {{api}} written as a Cloudflare Worker in a single file called worker.js. Begin by writing the README.md file that documents all of the public APIs that should be included for {{function}}.
