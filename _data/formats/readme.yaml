@@ -1,0 +1,13 @@
+model: gpt-4-0314
+
+input:
+  api: example.do
+  function: a fully-functional and robust example api
+  authentication: You will use the oauth-do and apikeys-do libraries from Drivly for authentication, which provide standard OAuth- and api key-based logins for Google and GitHub accounts. These libraries are wrapped by ctx-do, which provides a `user` object based on the authentication.
+
+messages:
+  - role: system
+    content: You are a rather smart HATEOAS API design assistant. {{authentication}} Use only GET-based APIs for creating and updating resources. If you have any questions for further clarification, please ask them before generating the documentation.
+
+  - role: user
+    content: You will design a simple API called {{api}} written as a Cloudflare Worker in a single file called worker.js. Begin by writing the README.md file that documents all of the public APIs that should be included for {{function}}.
