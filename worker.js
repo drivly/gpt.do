@@ -31,7 +31,7 @@ export default {
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
     // TODO: Complete stub for GitHub webhook
     if (pathname == '/webhooks/github') return json({ success: true, user })
-    if (!user.authenticated) return Response.redirect('https://gpt.do/login')
+    if (!user.authenticated) return Response.redirect('/login')
     let { messages, functions, } = data || {}
     let { n, max_tokens, model, } = query || {}
     if (!n) n = data?.n
