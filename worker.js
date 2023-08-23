@@ -27,16 +27,18 @@ export default {
         }
       }).then(res => res.json()).catch(() => ({}))
     }
-    const { user, json: data, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
+    const { user, json: data, hostname, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
     // TODO: Complete stub for GitHub webhook
     if (pathname == '/webhooks/github') return json({ success: true, user })
     if (!user.authenticated) return Response.redirect('/login')
     let { messages, functions, } = data || {}
-    let { n, max_tokens, model, } = query || {}
+    let { n, max_tokens, model, store, } = query || {}
     if (!n) n = data?.n
     if (!max_tokens) max_tokens = data?.max_tokens
     if (!model) model = data?.model
+    if (!store) store = data?.store
+    if (!messages) messages = []
     let steps = [], input = { ...query }
     if (['prompts', 'formats'].includes(pathSegments[0])) {
       const [{ value: templates }, { value: file }] = await Promise.allSettled([
@@ -63,14 +65,16 @@ export default {
       max_tokens = parseInt(max_tokens)
       if (user.role !== 'admin' && max_tokens > 1000) max_tokens = 1000
     }
-    if (!messages) messages = []
-    if (input.file && !messages.find(m => m.role === 'user')) {
-      messages.push({ role: 'user', content: input.file })
-    }
+    const id = env.CONVO.idFromName(hostname + user.id.toString())
+    const stub = env.CONVO.get(id)
+    if (store && !messages?.length) messages = await stub.fetch(new Request('/'))
     if (pathSegments.length === 1 && pathSegments[0] || pathSegments.length === 3 && pathSegments[2]) {
       input.item = decodeURIComponent(pathSegments[pathSegments.length - 1])
       if (!messages.find(m => m.role === 'user'))
         messages.push({ role: 'user', content: input.item })
+    }
+    if (input.file && !messages.find(m.content.match(/\{\{file\}\}/))) {
+      messages.push({ role: 'user', content: input.file })
     }
     if (!messages.find(m => m.role === 'system')) {
       messages.unshift({
@@ -100,7 +104,8 @@ export default {
         user,
       }, 500)
     }
-    let response = completion.choices?.[0]?.message?.content?.split('\n') || []
+    let message = completion.choices?.[0]?.message
+    let response = message?.content?.split('\n') || []
     let responses = []
     for (let stepIX = 0; stepIX < steps.length; stepIX++) {
       const step = steps[stepIX]
@@ -126,7 +131,11 @@ export default {
       }
       await Promise.allSettled(promises)
     }
-
+    if (store) {
+      await env.CONVO.fetch(id, new Request('/', {
+        body: messages.concat(message)
+      }))
+    }
     return json({
       response: responses.length
         ? responses[responses.length - 1].flatMap(r => r.response)
@@ -164,3 +173,19 @@ const json = (obj, status) =>
     headers: { 'content-type': 'application/json; charset=utf-8' },
     status,
   })
+
+
+export class Conversation {
+  constructor(state) {
+    this.state = state
+    state.blockConcurrencyWhile(async () => {
+      this.messages = await this.state.storage.get('messages')
+    })
+  }
+
+  async fetch(request) {
+    let { messages } = await request.json()
+    if (messages?.length) await this.state.storage.set('messages', this.messages = messages)
+    return new Response(this.messages)
+  }
+}
