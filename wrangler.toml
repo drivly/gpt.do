@@ -6,3 +6,12 @@ compatibility_date = "2023-07-12"
 services = [
   { binding = "CTX", service = "ctx-do", environment = "production" }
 ]
+
+[durable_objects]
+bindings = [
+  { name = "CONVO", class_name = "Conversation" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["Conversation"]
