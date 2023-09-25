@@ -3,6 +3,8 @@ name = "gpt-do"
 main = "worker.js"
 compatibility_date = "2023-07-12"
 
+tail_consumers = [{service = "tail", environment = "production"}]
+
 services = [
   { binding = "CTX", service = "ctx-do", environment = "production" }
 ]
