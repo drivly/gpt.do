@@ -18,9 +18,7 @@ export const api = {
 export default {
   fetch: async (req, env) => {
     async function getCompletion(options) {
-      let response
-      do {
-        response = await fetch('https://api.openai.com/v1/chat/completions', {
+      return await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'post',
           body: JSON.stringify(options),
           headers: {
@@ -28,8 +26,6 @@ export default {
             'authorization': 'Bearer ' + env.OPENAI_API_KEY
           }
         }).then(res => res.json()).catch(() => ({}))
-      } while (response?.completion?.error?.type === 'server_error')
-      return response
     }
     const { user, json: data, hostname, pathname, pathSegments, query, } = await env.CTX.fetch(req).then(res => res.json())
     if (pathname == '/favicon.ico') return new Response(null, { status: 404 })
