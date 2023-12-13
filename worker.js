@@ -1,4 +1,4 @@
-import { API, json } from 'apis.do'
+import { API, json, requiresAuth } from 'apis.do'
 import webhooks from './github-webhooks.js'
 
 const api = new API({
@@ -22,11 +22,11 @@ api.get('/favicon.ico', () => {
   return new Response(null, { status: 404 })
 })
 api.get('/webhooks/github', webhooks)
-api.get('/:message?', handler)
-api.get('/:template/:templateId/:message?', handler)
-api.createRoute('POST', '/api/:message?', handler)
-api.createRoute('POST', '/:message?', handler)
-api.createRoute('POST', '/:template/:templateId/:message?', handler)
+api.get('/:message?', requiresAuth, handler)
+api.get('/:template/:templateId/:message?', requiresAuth, handler)
+api.createRoute('POST', '/api/:message?', requiresAuth, handler)
+api.createRoute('POST', '/:message?', requiresAuth, handler)
+api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
 
 async function handler(req, env) {
   async function getCompletion(options) {
@@ -42,7 +42,6 @@ async function handler(req, env) {
       .catch(console.error)
   }
   const { user, json: data, hostname, pathSegments, query } = await env.CTX.fetch(req).then((res) => res.json())
-  if (!user.authenticated) return Response.redirect('/login')
   let { messages, functions } = data || {}
   let { n, max_tokens, model, store } = query || {}
   if (!n) n = data?.n
