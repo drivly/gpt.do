@@ -32,11 +32,8 @@ api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handle
 
 api.get('/threads/:threadId', requiresAuth, async (req, env) => {
   const { threadId } = req.params
-  if (threadId === 'new') {
-    const thread = await openai.beta.threads.create()
-    return json({ thread }, 200)
-  }
-  const thread = await openai.beta.threads.messages.list(threadId)
+  const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.messages.list(threadId)
+  return thread
 })
 api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
   const { threadId, runId } = req.params
@@ -47,7 +44,7 @@ api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
         assistant_id,
         instructions,
       })
-  return json({ run }, 200)
+  return run
 })
 api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
   const { threadId, message: content } = req.params
@@ -55,7 +52,7 @@ api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
     role: 'user',
     content,
   })
-  return json({ message }, 200)
+  return message
 })
 
 async function handler(req, env) {
@@ -182,14 +179,13 @@ async function handler(req, env) {
       })
     )
   }
-  return json({
+  return {
     response: responses.length ? responses[responses.length - 1].flatMap((r) => r.response) : response,
     ...(responses.length === 0 ? completion : {}),
     completions: responses.length ? [[completion]].concat(responses.map((r) => r.map((r) => r.completion))) : undefined,
     functions: query.debug ? functions : undefined,
     inputMessages: query.debug ? [[messages]].concat(responses.map((r) => r.map((r) => r.inputMessages))) : undefined,
-    user,
-  })
+  }
 }
 
 function fillMessageTemplate(messages, input) {
