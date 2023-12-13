@@ -71,7 +71,10 @@ async function handler(req, env) {
       .then((res) => res.json())
       .catch(console.error)
   }
-  const { user, json: data, hostname, pathSegments, query } = await env.CTX.fetch(req).then((res) => res.json())
+  const {
+    user,
+    ctx: { json: data, hostname, pathSegments, query },
+  } = req
   let { messages, functions } = data || {}
   let { n, max_tokens, model, store } = query || {}
   if (!n) n = data?.n
