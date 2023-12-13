@@ -1,6 +1,8 @@
 import { API, json, requiresAuth } from 'apis.do'
+import OpenAI from 'openai'
 import webhooks from './github-webhooks.js'
 
+const openai = new OpenAI()
 const api = new API({
   icon: '🤖',
   name: 'gpt.do',
@@ -27,6 +29,34 @@ api.get('/:template/:templateId/:message?', requiresAuth, handler)
 api.createRoute('POST', '/api/:message?', requiresAuth, handler)
 api.createRoute('POST', '/:message?', requiresAuth, handler)
 api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
+
+api.get('/threads/:threadId', requiresAuth, async (req, env) => {
+  const { threadId } = req.params
+  if (threadId === 'new') {
+    const thread = await openai.beta.threads.create()
+    return json({ thread }, 200)
+  }
+  const thread = await openai.beta.threads.messages.list(threadId)
+})
+api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
+  const { threadId, runId } = req.params
+  const { assistant: assistant_id, instructions } = req.query
+  const run = runId
+    ? await openai.beta.threads.runs.retrieve(threadId, runId)
+    : await openai.beta.threads.runs.create(threadId, {
+        assistant_id,
+        instructions,
+      })
+  return json({ run }, 200)
+})
+api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
+  const { threadId, message: content } = req.params
+  const message = await openai.beta.threads.messages.create(threadId, {
+    role: 'user',
+    content,
+  })
+  return json({ message }, 200)
+})
 
 async function handler(req, env) {
   async function getCompletion(options) {
