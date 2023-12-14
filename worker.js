@@ -26,7 +26,6 @@ api.get('/favicon.ico', () => {
 api.get('/assistants', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const assistants = await openai.beta.assistants.list()
-  console.log({ assistants })
   return assistants
 })
 api.get('/assistants/:assistantId', requiresAuth, async (req, env) => {
@@ -41,22 +40,27 @@ api.get('/assistants/:assistantId', requiresAuth, async (req, env) => {
           model,
         })
       : await openai.beta.assistants.retrieve(assistantId)
-  console.log({ assistant })
   return assistant
 })
 api.get('/threads/:threadId', requiresAuth, async (req, env) => {
-  const {
-    ctx: {
-      headers: { host },
-    },
-  } = req
-  console.log({ host })
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId } = req.params
-  const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.messages.list(threadId)
-  console.log({ thread })
-  const url = new URL(`threads/${threadId}`, 'https://gpt.do')
-  return thread.data ? { ...thread, url } : { data: thread, url }
+  const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.retrieve(threadId)
+  const endpoints = {
+    thread: new URL(`threads/${threadId}`, 'https://gpt.do'),
+    messages: new URL(`threads/${threadId}/messages`, 'https://gpt.do'),
+  }
+  return { endpoints, data: thread }
+})
+api.get('/threads/:threadId/messages', requiresAuth, async (req, env) => {
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+  const { threadId } = req.params
+  const messages = await openai.beta.threads.messages.list(threadId)
+  const endpoints = {
+    thread: new URL(`threads/${threadId}`, 'https://gpt.do'),
+    messages: new URL(`threads/${threadId}/messages`, 'https://gpt.do'),
+  }
+  return { endpoints, ...messages }
 })
 api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
@@ -68,7 +72,6 @@ api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
         assistant_id,
         instructions,
       })
-  console.log({ run })
   return run
 })
 api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
@@ -78,7 +81,6 @@ api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
     role: 'user',
     content,
   })
-  console.log({ message })
   return message
 })
 
