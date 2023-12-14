@@ -22,22 +22,44 @@ const api = new API({
 api.get('/favicon.ico', () => {
   return new Response(null, { status: 404 })
 })
-api.get('/webhooks/github', webhooks)
-api.get('/:message?', requiresAuth, handler)
-api.get('/:template/:templateId/:message?', requiresAuth, handler)
-api.createRoute('POST', '/api/:message', requiresAuth, handler)
-api.createRoute('POST', '/post', requiresAuth, handler)
-api.createRoute('POST', '/:message?', requiresAuth, handler)
-api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
 
+api.get('/assistants', requiresAuth, async (req, env) => {
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+  const assistants = await openai.beta.assistants.list()
+  console.log({ assistants })
+  return assistants
+})
+api.get('/assistants/:assistantId', requiresAuth, async (req, env) => {
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+  const { name, instructions, model } = req.query
+  const { assistantId } = req.params
+  const assistant =
+    assistantId === 'new'
+      ? await openai.beta.assistants.create({
+          name,
+          instructions,
+          model,
+        })
+      : await openai.beta.assistants.retrieve(assistantId)
+  console.log({ assistant })
+  return assistant
+})
 api.get('/threads/:threadId', requiresAuth, async (req, env) => {
-  const openai = new OpenAI(env.OPENAI_API_KEY)
+  const {
+    ctx: {
+      headers: { host },
+    },
+  } = req
+  console.log({ host })
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId } = req.params
   const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.messages.list(threadId)
-  return thread
+  console.log({ thread })
+  const url = new URL(`threads/${threadId}`, 'https://gpt.do')
+  return thread.data ? { ...thread, url } : { data: thread, url }
 })
 api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
-  const openai = new OpenAI(env.OPENAI_API_KEY)
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId, runId } = req.params
   const { assistant: assistant_id, instructions } = req.query
   const run = runId
@@ -46,17 +68,27 @@ api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
         assistant_id,
         instructions,
       })
+  console.log({ run })
   return run
 })
 api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
-  const openai = new OpenAI(env.OPENAI_API_KEY)
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId, message: content } = req.params
   const message = await openai.beta.threads.messages.create(threadId, {
     role: 'user',
     content,
   })
+  console.log({ message })
   return message
 })
+
+api.get('/webhooks/github', webhooks)
+api.get('/:message?', requiresAuth, handler)
+api.get('/:template/:templateId/:message?', requiresAuth, handler)
+api.createRoute('POST', '/api/:message', requiresAuth, handler)
+api.createRoute('POST', '/post', requiresAuth, handler)
+api.createRoute('POST', '/:message?', requiresAuth, handler)
+api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
 
 async function handler(req, env) {
   async function getCompletion(options) {
