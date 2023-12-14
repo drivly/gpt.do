@@ -2,45 +2,45 @@ import { API, json, requiresAuth } from 'apis.do'
 import OpenAI from 'openai'
 import webhooks from './github-webhooks.js'
 
-const api = new API({
-  icon: '🤖',
-  name: 'gpt.do',
-  description: 'GPT-3 Templates and Completions',
-  url: 'https://gpt.do/api',
-  type: 'https://apis.do/ai',
-  endpoints: {
-    get: 'https://gpt.do/:message',
-    post: 'https://gpt.do/api',
+const api = new API(
+  {
+    icon: '🤖',
+    name: 'gpt.do',
+    description: 'GPT-3 Templates and Completions',
+    url: 'https://gpt.do/api',
+    type: 'https://apis.do/ai',
+    site: 'https://gpt.do',
+    login: 'https://gpt.do/login',
+    signup: 'https://gpt.do/signup',
+    subscribe: 'https://gpt.do/subscribe',
+    repo: 'https://github.com/drivly/gpt.do',
   },
-  site: 'https://gpt.do',
-  login: 'https://gpt.do/login',
-  signup: 'https://gpt.do/signup',
-  subscribe: 'https://gpt.do/subscribe',
-  repo: 'https://github.com/drivly/gpt.do',
-})
+  {
+    examples: {
+      get: '/:message',
+      post: '/post',
+    },
+  }
+)
 
 api.get('/favicon.ico', () => {
   return new Response(null, { status: 404 })
 })
 
-api.get('/assistants', requiresAuth, async (req, env) => {
+api.get('/assistants', requiresAuth, async (_req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const assistants = await openai.beta.assistants.list()
   return assistants
 })
 api.get('/assistants/:assistantId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
-  const { name, instructions, model } = req.query
   const { assistantId } = req.params
-  const assistant =
-    assistantId === 'new'
-      ? await openai.beta.assistants.create({
-          name,
-          instructions,
-          model,
-        })
-      : await openai.beta.assistants.retrieve(assistantId)
-  return assistant
+  return await getAssistant({ assistantId, openai, ...req.query })
+})
+api.createRoute('POST', '/assistants/:assistantId', requiresAuth, async (req, env) => {
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+  const { assistantId } = req.params
+  return await getAssistant({ assistantId, openai, ...req.ctx.json })
 })
 api.get('/threads/:threadId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
@@ -77,11 +77,12 @@ api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
 api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId, message: content } = req.params
-  const message = await openai.beta.threads.messages.create(threadId, {
-    role: 'user',
-    content,
-  })
-  return message
+  return await createMessage({ openai, threadId, content })
+})
+api.createRoute('POST', '/threads/:threadId', requiresAuth, async (req, env) => {
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+  const { threadId, message: content } = req.ctx.json
+  return await createMessage({ openai, threadId, content })
 })
 
 api.get('/webhooks/github', webhooks)
@@ -91,6 +92,26 @@ api.createRoute('POST', '/api/:message', requiresAuth, handler)
 api.createRoute('POST', '/post', requiresAuth, handler)
 api.createRoute('POST', '/:message?', requiresAuth, handler)
 api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
+
+async function createMessage({ openai, threadId, content }) {
+  const message = await openai.beta.threads.messages.create(threadId, {
+    role: 'user',
+    content,
+  })
+  return message
+}
+
+async function getAssistant({ assistantId, openai, name, instructions, model }) {
+  const assistant =
+    assistantId === 'new'
+      ? await openai.beta.assistants.create({
+          name,
+          instructions,
+          model,
+        })
+      : await openai.beta.assistants.retrieve(assistantId)
+  return assistant
+}
 
 async function handler(req, env) {
   async function getCompletion(options) {
