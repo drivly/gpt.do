@@ -47,8 +47,8 @@ api.get('/threads/:threadId', requiresAuth, async (req, env) => {
   const { threadId } = req.params
   const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.retrieve(threadId)
   const endpoints = {
-    thread: new URL(`threads/${threadId}`, 'https://gpt.do'),
-    messages: new URL(`threads/${threadId}/messages`, 'https://gpt.do'),
+    thread: new URL(`threads/${thread.id}`, 'https://gpt.do'),
+    messages: new URL(`threads/${thread.id}/messages`, 'https://gpt.do'),
   }
   return { endpoints, data: thread }
 })
