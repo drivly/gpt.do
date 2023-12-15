@@ -1,7 +1,7 @@
 import { API, json, requiresAuth } from 'apis.do'
 import OpenAI from 'openai'
 import webhooks from './github-webhooks.js'
-import { getAssistant, getOrCreateThread, getOrCreateRun, createMessage } from './openai.js'
+import { assistant, thread, run, message } from './openai.js'
 
 const api = new API(
   {
@@ -36,22 +36,22 @@ api.get('/assistants', requiresAuth, async (_req, env) => {
 api.get('/assistants/:assistantId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { assistantId } = req.params
-  return await getAssistant({ assistantId, openai, ...req.query })
+  return await assistant({ assistantId, openai, ...req.query })
 })
 api.createRoute('POST', '/assistants/:assistantId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { assistantId } = req.params
-  return await getAssistant({ assistantId, openai, ...req.ctx.json })
+  return await assistant({ assistantId, openai, ...req.ctx.json })
 })
 api.get('/threads/:threadId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId } = req.params
-  const thread = await getOrCreateThread({ threadId, openai })
+  const data = await thread({ threadId, openai })
   const endpoints = {
-    thread: new URL(`threads/${thread.id}`, 'https://gpt.do'),
-    messages: new URL(`threads/${thread.id}/messages`, 'https://gpt.do'),
+    thread: new URL(`threads/${data.id}`, 'https://gpt.do'),
+    messages: new URL(`threads/${data.id}/messages`, 'https://gpt.do'),
   }
-  return { endpoints, data: thread }
+  return { endpoints, data }
 })
 api.get('/threads/:threadId/messages', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
@@ -67,17 +67,22 @@ api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId, runId } = req.params
   const { assistant: assistant_id, instructions } = req.query
-  return await getOrCreateRun({ runId, openai, threadId, assistant_id, instructions })
+  return await run({ runId, openai, threadId, assistant_id, instructions })
 })
-api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
+api.get('/threads/:threadId/messages/new/:message', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId, message: content } = req.params
-  return await createMessage({ openai, threadId, content })
+  return await message({ openai, threadId, content: decodeURIComponent(content) })
+})
+api.get('/threads/:threadId/messages/:messageId', requiresAuth, async (req, env) => {
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
+  return await message({ openai, ...req.params })
 })
 api.createRoute('POST', '/threads/:threadId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
-  const { threadId, message: content } = req.ctx.json
-  return await createMessage({ openai, threadId, content })
+  const { threadId } = req.params
+  const { message: content } = req.ctx.json
+  return await message({ openai, threadId, content })
 })
 
 api.get('/webhooks/github', webhooks)

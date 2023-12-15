@@ -1,43 +1,48 @@
 import OpenAI from 'openai'
 
 /**
- * @param {{ runId: string, openai: OpenAI, threadId: string, assistant_id: string, instructions?: string|null }} options
+ * @param {{ runId?: string|null, openai: OpenAI, threadId: string, assistant_id: string, instructions?: string|null }} options
  */
-export async function getOrCreateRun({ runId, openai, threadId, assistant_id, instructions }) {
-  const run = runId
-    ? await openai.beta.threads.runs.retrieve(threadId, runId)
-    : await openai.beta.threads.runs.create(threadId, {
-        assistant_id,
-        instructions,
-      })
+export async function run({ runId, openai, threadId, assistant_id, instructions }) {
+  const run =
+    !runId || runId === 'new'
+      ? await openai.beta.threads.runs.create(threadId, {
+          assistant_id,
+          instructions,
+        })
+      : await openai.beta.threads.runs.retrieve(threadId, runId)
+
   return run
 }
 
 /**
- * @param {{ threadId: string, openai: OpenAI }} options
+ * @param {{ threadId?: string|null, openai: OpenAI }} options
  */
-export async function getOrCreateThread({ threadId, openai }) {
-  const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.retrieve(threadId)
+export async function thread({ threadId, openai }) {
+  const thread = !threadId || threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.retrieve(threadId)
   return thread
 }
 
 /**
- * @param {{ threadId: string, openai: OpenAI, content: string }} options
+ * @param {{ messageId?: string|null, threadId: string, openai: OpenAI, content?: string }} options
  */
-export async function createMessage({ openai, threadId, content }) {
-  const message = await openai.beta.threads.messages.create(threadId, {
-    role: 'user',
-    content,
-  })
+export async function message({ messageId, openai, threadId, content }) {
+  const message =
+    !messageId || messageId === 'new'
+      ? await openai.beta.threads.messages.create(threadId, {
+          content,
+          role: 'user',
+        })
+      : await openai.beta.threads.messages.retrieve(threadId, messageId)
   return message
 }
 
 /**
- * @param {{ assistantId: string, openai: OpenAI, name?: string, instructions?: string, model: string }} options
+ * @param {{ assistantId?: string|null, openai: OpenAI, name?: string, instructions?: string, model?: string|null }} options
  */
-export async function getAssistant({ assistantId, openai, name, instructions, model }) {
+export async function assistant({ assistantId, openai, name, instructions, model }) {
   const assistant =
-    assistantId === 'new'
+    !assistantId || assistantId === 'new'
       ? await openai.beta.assistants.create({
           name,
           instructions,
