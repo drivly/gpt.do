@@ -1,6 +1,7 @@
 import { API, json, requiresAuth } from 'apis.do'
 import OpenAI from 'openai'
 import webhooks from './github-webhooks.js'
+import { getAssistant, getOrCreateThread, getOrCreateRun, createMessage } from './openai.js'
 
 const api = new API(
   {
@@ -45,7 +46,7 @@ api.createRoute('POST', '/assistants/:assistantId', requiresAuth, async (req, en
 api.get('/threads/:threadId', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId } = req.params
-  const thread = threadId === 'new' ? await openai.beta.threads.create() : await openai.beta.threads.retrieve(threadId)
+  const thread = await getOrCreateThread({ threadId, openai })
   const endpoints = {
     thread: new URL(`threads/${thread.id}`, 'https://gpt.do'),
     messages: new URL(`threads/${thread.id}/messages`, 'https://gpt.do'),
@@ -66,13 +67,7 @@ api.get('/threads/:threadId/run/:runId?', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
   const { threadId, runId } = req.params
   const { assistant: assistant_id, instructions } = req.query
-  const run = runId
-    ? await openai.beta.threads.runs.retrieve(threadId, runId)
-    : await openai.beta.threads.runs.create(threadId, {
-        assistant_id,
-        instructions,
-      })
-  return run
+  return await getOrCreateRun({ runId, openai, threadId, assistant_id, instructions })
 })
 api.get('/threads/:threadId/:message', requiresAuth, async (req, env) => {
   const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
@@ -92,26 +87,6 @@ api.createRoute('POST', '/api/:message', requiresAuth, handler)
 api.createRoute('POST', '/post', requiresAuth, handler)
 api.createRoute('POST', '/:message?', requiresAuth, handler)
 api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
-
-async function createMessage({ openai, threadId, content }) {
-  const message = await openai.beta.threads.messages.create(threadId, {
-    role: 'user',
-    content,
-  })
-  return message
-}
-
-async function getAssistant({ assistantId, openai, name, instructions, model }) {
-  const assistant =
-    assistantId === 'new'
-      ? await openai.beta.assistants.create({
-          name,
-          instructions,
-          model,
-        })
-      : await openai.beta.assistants.retrieve(assistantId)
-  return assistant
-}
 
 async function handler(req, env) {
   async function getCompletion(options) {
