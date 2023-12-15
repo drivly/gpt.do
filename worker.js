@@ -90,7 +90,6 @@ api.get('/:message?', requiresAuth, handler)
 api.get('/:template/:templateId/:message?', requiresAuth, handler)
 api.createRoute('POST', '/api/:message', requiresAuth, handler)
 api.createRoute('POST', '/post', requiresAuth, handler)
-api.createRoute('POST', '/:message?', requiresAuth, handler)
 api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
 
 async function handler(req, env) {
