@@ -174,9 +174,13 @@ async function handler(req, env) {
       {
         api,
         error: 'An error occurred while processing your request.',
-        completion: query.debug ? completion : undefined,
-        functions: query.debug ? functions : undefined,
-        inputMessages: query.debug ? [[messages]] : undefined,
+        data: query.debug
+          ? {
+              completion,
+              functions,
+              inputMessages: [[messages]],
+            }
+          : undefined,
         user,
       },
       500
