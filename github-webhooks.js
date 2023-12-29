@@ -1,6 +1,5 @@
-import { json } from 'apis.do'
-
 // TODO: Complete stub for GitHub webhook
-export default (req, env) => {
-  return json({ success: true, user })
+export default ({ ctx: { json } }, _env) => {
+  console.log({ json })
+  return { success: true }
 }

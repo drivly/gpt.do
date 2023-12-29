@@ -92,7 +92,7 @@ api.createRoute('POST', '/api/:message', requiresAuth, handler)
 api.createRoute('POST', '/post', requiresAuth, handler)
 api.createRoute('POST', '/:template/:templateId/:message?', requiresAuth, handler)
 
-async function handler(req, env) {
+async function handler({ user, ctx: { json: data, hostname, pathSegments, query } }, env) {
   async function getCompletion(options) {
     return await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'post',
@@ -105,10 +105,6 @@ async function handler(req, env) {
       .then((res) => res.json())
       .catch(console.error)
   }
-  const {
-    user,
-    ctx: { json: data, hostname, pathSegments, query },
-  } = req
   let { messages, functions } = data || {}
   let { n, max_tokens, model, store } = query || {}
   if (!n) n = data?.n
