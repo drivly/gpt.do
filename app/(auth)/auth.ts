@@ -19,20 +19,20 @@ export const {
 } = NextAuth({
   ...authConfig,
   providers: [
-    // Credentials({
-    //   credentials: {},
-    //   async authorize({ email, password }: any) {
-    //     const users = await getUser(email);
-    //     if (users.length === 0) return null;
-    //     // biome-ignore lint: Forbidden non-null assertion.
-    //     const passwordsMatch = await compare(password, users[0].password!);
-    //     if (!passwordsMatch) return null;
-    //     return users[0] as any;
-    //   },
-    // }),
-    WorkOS({
-      // connection: 'conn_abc123',
+    Credentials({
+      credentials: {},
+      async authorize({ email, password }: any) {
+        const users = await getUser(email);
+        if (users.length === 0) return null;
+        // biome-ignore lint: Forbidden non-null assertion.
+        const passwordsMatch = await compare(password, users[0].password!);
+        if (!passwordsMatch) return null;
+        return users[0] as any;
+      },
     }),
+    // WorkOS({
+    //   // connection: 'conn_abc123',
+    // }),
   ],
   callbacks: {
     async jwt({ token, user }) {

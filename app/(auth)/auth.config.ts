@@ -16,22 +16,22 @@ export const authConfig = {
       const isOnRegister = nextUrl.pathname.startsWith('/register');
       const isOnLogin = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/api/auth/signin')
 
-      // if (isLoggedIn && (isOnLogin || isOnRegister)) {
-      //   return Response.redirect(new URL('/', nextUrl as unknown as URL));
-      // }
+      if (isLoggedIn && (isOnLogin || isOnRegister)) {
+        return Response.redirect(new URL('/', nextUrl as unknown as URL));
+      }
 
-      // if (isOnRegister || isOnLogin) {
-      //   return true; // Always allow access to register and login pages
-      // }
+      if (isOnRegister || isOnLogin) {
+        return true; // Always allow access to register and login pages
+      }
 
-      // if (isOnChat) {
-      //   if (isLoggedIn) return true;
-      //   return false; // Redirect unauthenticated users to login page
-      // }
+      if (isOnChat) {
+        if (isLoggedIn) return true;
+        return false; // Redirect unauthenticated users to login page
+      }
 
-      // if (isLoggedIn) {
-      //   return Response.redirect(new URL('/', nextUrl as unknown as URL));
-      // }
+      if (isLoggedIn) {
+        return Response.redirect(new URL('/', nextUrl as unknown as URL));
+      }
 
       return true;
     },
