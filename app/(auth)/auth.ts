@@ -1,6 +1,7 @@
 import { compare } from 'bcrypt-ts';
 import NextAuth, { type User, type Session } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import WorkOS from 'next-auth/providers/workos';
 
 import { getUser } from '@/lib/db/queries';
 
@@ -28,6 +29,9 @@ export const {
         if (!passwordsMatch) return null;
         return users[0] as any;
       },
+    }),
+    WorkOS({
+      // connection: 'conn_abc123',
     }),
   ],
   callbacks: {
