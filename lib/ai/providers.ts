@@ -23,15 +23,15 @@ export const myProvider = isTestEnvironment
     })
   : customProvider({
       languageModels: {
-        'chat-model': xai('grok-2-1212'),
+        'chat-model': xai('grok-3-beta'),
         'chat-model-reasoning': wrapLanguageModel({
-          model: xai('grok-3-mini-beta'),
+          model: xai('grok-3-beta'),
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
-        'title-model': xai('grok-2-1212'),
-        'artifact-model': xai('grok-2-1212'),
+        'title-model': xai('grok-3-beta'),
+        'artifact-model': xai('grok-3-beta'),
       },
       imageModels: {
-        'small-model': xai.image('grok-2-image'),
+        'small-model': xai.image('grok-3-beta'),
       },
     });
